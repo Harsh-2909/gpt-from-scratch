@@ -124,4 +124,28 @@ logits, loss = model(xb, yb)
 idx = torch.zeros((1, 1), dtype=torch.long)
 generated_tokens = model.generate(idx, max_new_tokens=100)[0]
 output = decode(generated_tokens.tolist())
-print(output)
+print(f"Raw Output (before training):\n{output}\n")
+
+# The output we got was completely garbage values because the embedding table was randomly generated without any training. Lets train the model first before using it.
+# Training the model
+
+# Create a PyTorch optimizer
+# 3r-4 is a good learning rate for Bigger models.
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+
+batch_size = 32
+for steps in range(10000):
+    xb, yb = get_batch('train')
+
+    logits, loss = model(xb, yb)
+    optimizer.zero_grad(set_to_none=True)
+    loss.backward()
+    optimizer.step()
+
+print(f"Loss after optimization: {loss.item()}")
+
+# Generating the output after training
+idx = torch.zeros((1, 1), dtype=torch.long)
+generated_tokens = model.generate(idx, max_new_tokens=500)[0]
+output = decode(generated_tokens.tolist())
+print(f"Output after training:\n{output}")
