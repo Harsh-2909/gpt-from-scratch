@@ -10,6 +10,7 @@ eval_interval = 300
 learning_rate = 1e-3
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
+n_embd = 32  # Number of embeddings
 torch.manual_seed(1337)  # Manually seeding to get deterministic random numbers
 
 # Get the data
@@ -77,15 +78,20 @@ def estimate_loss():
 class BigramLanguageModel(nn.Module):
     """We are using the Bigram language model. It is a part of n-gram models. A bigram model uses the context of the previous 1 token to predict the next token. It does not check the context beyond 1 token."""
 
-    def __init__(self, vocab_size):
+    def __init__(self):
         super().__init__()
         # Each token directly reads off the logits from the lookup table
-        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+        # Linear layer to get the logits
+        self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None) -> tuple:
 
         # Returns a tensor of dim (batch_size, block_size, vocab_size) (B, T, C). Here its, [4, 8, 65]
-        logits = self.token_embedding_table(idx)
+        token_embeddings = self.token_embedding_table(
+            idx)  # Shape: (B, T, C=n_embd)
+        logits = self.lm_head(token_embeddings)  # Shape: (B, T, C=vocab_size)
+
         if targets is None:
             loss = None
         else:
@@ -126,12 +132,11 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 
-model = BigramLanguageModel(vocab_size)
-m = model.to(device)
+model = BigramLanguageModel().to(device)
 
 # Generates token 0 which corresponds to newline. This will be used to start generation
 idx = torch.zeros((1, 1), dtype=torch.long, device=device)
-generated_tokens = m.generate(idx, max_new_tokens=100)[0]
+generated_tokens = model.generate(idx, max_new_tokens=100)[0]
 output = decode(generated_tokens.tolist())
 print(f"Raw Output (before training):\n{output}\n")
 
@@ -140,7 +145,8 @@ print(f"Raw Output (before training):\n{output}\n")
 
 # Create a PyTorch optimizer
 # 3r-4 is a good learning rate for Bigger models.
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate) # type: ignore
+optimizer = torch.optim.AdamW(  # type: ignore
+    model.parameters(), lr=learning_rate)
 
 for iter in range(max_iters):
 
@@ -158,6 +164,6 @@ for iter in range(max_iters):
 
 # Generating the output after training
 idx = torch.zeros((1, 1), dtype=torch.long, device=device)
-generated_tokens = m.generate(idx, max_new_tokens=500)[0]
+generated_tokens = model.generate(idx, max_new_tokens=500)[0]
 output = decode(generated_tokens.tolist())
 print(f"Output after training:\n{output}")
