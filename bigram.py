@@ -82,15 +82,22 @@ class BigramLanguageModel(nn.Module):
         super().__init__()
         # Each token directly reads off the logits from the lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+        self.position_embedding_table = nn.Embedding(block_size, n_embd)
         # Linear layer to get the logits
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None) -> tuple:
+        B, T = idx.shape
 
-        # Returns a tensor of dim (batch_size, block_size, vocab_size) (B, T, C). Here its, [4, 8, 65]
         token_embeddings = self.token_embedding_table(
             idx)  # Shape: (B, T, C=n_embd)
-        logits = self.lm_head(token_embeddings)  # Shape: (B, T, C=vocab_size)
+        position_embeddings = self.position_embedding_table(
+            torch.arange(T, device=device))  # Shape: (T, C=n_embd) -> (B, T, C=n_embd)
+
+        # Add the token and position embeddings
+        x = token_embeddings + position_embeddings  # Shape: (B, T, C=n_embd)
+        # Shape: (B, T, C=vocab_size). Here its, [4, 8, 65]
+        logits = self.lm_head(x)
 
         if targets is None:
             loss = None
