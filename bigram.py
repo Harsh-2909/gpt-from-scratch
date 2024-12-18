@@ -102,6 +102,17 @@ class Head(nn.Module):
         return out
 
 
+class MultiHeadAttention(nn.Module):
+    """multiple heads of self-attention in parallel"""
+
+    def __init__(self, num_heads, head_size):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+
+    def forward(self, x):
+        return torch.cat([h(x) for h in self.heads], dim=-1)
+
+
 class BigramLanguageModel(nn.Module):
     """We are using the Bigram language model. It is a part of n-gram models. A bigram model uses the context of the previous 1 token to predict the next token. It does not check the context beyond 1 token."""
 
@@ -111,7 +122,8 @@ class BigramLanguageModel(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
         # Attention Layer
-        self.sa_head = Head(n_embd)
+        # self.sa_heads = Head(n_embd) # i.e, 1 head of 32-dim self-attention
+        self.sa_heads = MultiHeadAttention(4, n_embd//4) # i.e, 4 heads of 8-dim self-attention
         # Linear layer to get the logits
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
@@ -125,7 +137,7 @@ class BigramLanguageModel(nn.Module):
 
         # Add the token and position embeddings
         x = token_embeddings + position_embeddings  # Shape: (B, T, C=n_embd)
-        x = self.sa_head(x)  # applying one head of self attention. (B, T, C)
+        x = self.sa_heads(x)  # applying one head of self attention. (B, T, C)
         # Shape: (B, T, C=vocab_size). Here its, [4, 8, 65]
         logits = self.lm_head(x)
 
