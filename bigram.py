@@ -127,6 +127,21 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 
+class Block(nn.Module):
+    "Transformer Block: Communication followed by computation"
+
+    def __init__(self, n_embd, n_head):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size)
+        self.ffwd = FeedForward(n_embd)
+
+    def forward(self, x):
+        x = self.sa(x)
+        x = self.ffwd(x)
+        return x
+
+
 class BigramLanguageModel(nn.Module):
     """We are using the Bigram language model. It is a part of n-gram models. A bigram model uses the context of the previous 1 token to predict the next token. It does not check the context beyond 1 token."""
 
@@ -138,10 +153,15 @@ class BigramLanguageModel(nn.Module):
         # Attention Layer
         # self.sa_heads = Head(n_embd) # i.e, 1 head of 32-dim self-attention
         # i.e, 4 heads of 8-dim self-attention
-        self.sa_heads = MultiHeadAttention(4, n_embd//4)
-        self.ffwd = FeedForward(n_embd)
-        # Linear layer to get the logits
-        self.lm_head = nn.Linear(n_embd, vocab_size)
+        # self.sa_heads = MultiHeadAttention(4, n_embd//4)
+        # self.ffwd = FeedForward(n_embd)
+
+        # Transformer Block
+        # We will be using Blocks instead of individual attention and feed-forward layers.
+        self.blocks = nn.Sequential(
+            *[Block(n_embd, n_head=4) for _ in range(3)])
+
+        self.lm_head = nn.Linear(n_embd, vocab_size)  # Linear layer for logits
 
     def forward(self, idx, targets=None) -> tuple:
         B, T = idx.shape
@@ -153,8 +173,9 @@ class BigramLanguageModel(nn.Module):
 
         # Add the token and position embeddings
         x = token_embeddings + position_embeddings  # Shape: (B, T, C=n_embd)
-        x = self.sa_heads(x)  # applying one head of self attention. (B, T, C)
-        x = self.ffwd(x)  # (B, T, C)
+        # x = self.sa_heads(x)  # applying one head of self attention. (B, T, C)
+        # x = self.ffwd(x)  # (B, T, C)
+        x = self.blocks(x)  # (B, T, C)
         # Shape: (B, T, C=vocab_size). Here its, [4, 8, 65]
         logits = self.lm_head(x)
 
