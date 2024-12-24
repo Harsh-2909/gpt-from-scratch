@@ -2,15 +2,16 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-# Parameters
-batch_size: int = 32  # How many sequences to process in parallel
-block_size: int = 8  # Number of tokens processed at a time. Content length of predictions
+# Hyper Parameters
+batch_size: int = 64  # How many sequences to process in parallel
+# Number of tokens processed at a time. Content length of predictions
+block_size: int = 256
 max_iters = 5000
 eval_interval = 500
-learning_rate = 1e-3
+learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
-n_embd = 32  # Number of embeddings
+n_embd = 384  # Number of embeddings
 n_head = 6
 n_layer = 6
 dropout = 0.2  # Drops out 20% of the neurons every forward and backward pass
