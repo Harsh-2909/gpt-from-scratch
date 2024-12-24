@@ -11,6 +11,10 @@ learning_rate = 1e-3
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 n_embd = 32  # Number of embeddings
+n_head = 6
+n_layer = 6
+dropout = 0.2  # Drops out 20% of the neurons every forward and backward pass
+
 torch.manual_seed(1337)  # Manually seeding to get deterministic random numbers
 
 # Get the data
@@ -87,6 +91,8 @@ class Head(nn.Module):
         self.register_buffer('tril', torch.tril(
             torch.ones(block_size, block_size)))
 
+        self.dropout = nn.Dropout(dropout)
+
     def forward(self, x):
         B, T, C = x.shape
         k = self.key(x)    # (B, T, head_size)
@@ -96,6 +102,7 @@ class Head(nn.Module):
         wei = q @ k.transpose(-2, -1) * self.head_size ** -0.5
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
+        wei = self.dropout(wei)
         # Weighted aggregation
         v = self.value(x)  # (B, T, head_size)
         out = wei @ v  # (B, T, T) @ (B, T, head_size) -> (B, T, head_size)
@@ -109,10 +116,12 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
         self.proj = nn.Linear(n_embd, n_embd)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
         out = self.proj(out)
+        out = self.dropout(out)
         return out
 
 
@@ -126,6 +135,7 @@ class FeedForward(nn.Module):
             nn.Linear(n_embd, 4 * n_embd),
             nn.ReLU(),
             nn.Linear(4 * n_embd, n_embd),  # projection layer
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
@@ -171,10 +181,9 @@ class BigramLanguageModel(nn.Module):
         # Transformer Block
         # We will be using Blocks instead of individual attention and feed-forward layers.
         self.blocks = nn.Sequential(
-            *[Block(n_embd, n_head=4) for _ in range(3)],
-            nn.LayerNorm(n_embd)
+            *[Block(n_embd, n_head=n_head) for _ in range(n_layer)],
         )
-
+        self.ln_f = nn.LayerNorm(n_embd)  # Final Layer Normalization
         self.lm_head = nn.Linear(n_embd, vocab_size)  # Linear layer for logits
 
     def forward(self, idx, targets=None) -> tuple:
@@ -190,6 +199,7 @@ class BigramLanguageModel(nn.Module):
         # x = self.sa_heads(x)  # applying one head of self attention. (B, T, C)
         # x = self.ffwd(x)  # (B, T, C)
         x = self.blocks(x)  # (B, T, C)
+        x = self.ln_f(x)  # (B, T, C)
         # Shape: (B, T, C=vocab_size). Here its, [4, 8, 65]
         logits = self.lm_head(x)
 
