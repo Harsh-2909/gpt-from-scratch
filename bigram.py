@@ -140,11 +140,17 @@ class Block(nn.Module):
         head_size = n_embd // n_head
         self.sa = MultiHeadAttention(n_head, head_size)
         self.ffwd = FeedForward(n_embd)
+        # Layer Normalization
+        # We normalise the input (x) before passing it to the attention and feed-forward layers.
+        # Here, the normalisation acts on a single token (i.e, a single row of the input tensor)
+        # Both the Batch and Time (B, T) dimensions act as the batch dimension for the LayerNorm.
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
 
     def forward(self, x):
         # Adding the residual connection
-        x = x + self.sa(x)
-        x = x + self.ffwd(x)
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
         return x
 
 
@@ -165,7 +171,9 @@ class BigramLanguageModel(nn.Module):
         # Transformer Block
         # We will be using Blocks instead of individual attention and feed-forward layers.
         self.blocks = nn.Sequential(
-            *[Block(n_embd, n_head=4) for _ in range(3)])
+            *[Block(n_embd, n_head=4) for _ in range(3)],
+            nn.LayerNorm(n_embd)
+        )
 
         self.lm_head = nn.Linear(n_embd, vocab_size)  # Linear layer for logits
 
@@ -202,8 +210,8 @@ class BigramLanguageModel(nn.Module):
         """idx is (B, T) array. This function will take the input tokens `idx` and generate the output tokens based on the inputs.
 
         Arguments:
-            idx {Array} -- An array of size (B, T)
-            max_new_tokens {Integer} -- The number of tokens to generate
+            - idx {Array} -- An array of size (B, T)
+            - max_new_tokens {Integer} -- The number of tokens to generate
 
         Returns:
             [Array] -- The output of size (B, T+max_new_tokens)
