@@ -12,7 +12,7 @@ learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 n_embd = 384  # Number of embeddings
-n_head = 6
+n_head = 6  # Number of heads in the multi-head attention
 n_layer = 6
 dropout = 0.2  # Drops out 20% of the neurons every forward and backward pass
 
@@ -165,8 +165,16 @@ class Block(nn.Module):
         return x
 
 
-class BigramLanguageModel(nn.Module):
-    """We are using the Bigram language model. It is a part of n-gram models. A bigram model uses the context of the previous 1 token to predict the next token. It does not check the context beyond 1 token."""
+class LanguageModel(nn.Module):
+    """The LanguageModel class implements the Transformer model. It has the following components:
+    - Token Embedding Layer: This layer converts the input tokens into embeddings.
+    - Position Embedding Layer: This layer adds positional information to the tokens.
+    - Transformer Block: This block contains the self-attention and feed-forward layers.
+    - Final Layer Normalization: This layer normalizes the output of the transformer block.
+    - Linear Layer: This layer converts the output of the transformer block into logits.
+
+    The forward function takes the input tokens and returns the logits. If the targets are provided, it also returns the loss.
+    """
 
     def __init__(self):
         super().__init__()
@@ -247,7 +255,7 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 
-model = BigramLanguageModel().to(device)
+model = LanguageModel().to(device)
 
 # Generates token 0 which corresponds to newline. This will be used to start generation
 idx = torch.zeros((1, 1), dtype=torch.long, device=device)
