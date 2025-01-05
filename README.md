@@ -39,6 +39,27 @@ To run the project, execute the following command:
 python main.py
 ```
 
+This will train the GPT model on the provided training data and generate text using the trained model.
+
+The parameters for the GPT model can be modified in the `main.py` file, such as the number of layers, hidden size, and number of attention heads.
+To run it in a device without a good gpu just for testing purpose, you can change the hyperparameters in the `main.py` file to a smaller value.
+
+```python
+# Hyper Parameters
+batch_size: int = 32  # How many sequences to process in parallel
+# Number of tokens processed at a time. Content length of predictions
+block_size: int = 8
+max_iters = 5000
+eval_interval = 500
+learning_rate = 1e-3
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+eval_iters = 200
+n_embd = 32  # Number of embeddings
+n_head = 4  # Number of heads in the multi-head attention
+n_layer = 6
+dropout = 0.2  # Drops out 20% of the neurons every forward and backward pass
+```
+
 ## Code Structure
 The project is structured as follows:
 
@@ -58,7 +79,7 @@ gpt-from-scratch/
 ├── requirements.txt
 ```
 
-The `data` directory contains the training data for the GPT model. The `src` directory contains the source code for the GPT model implementation. The `gpt.py` file contains the GPT model implementation, and the `main.py` file contains the main script to run the GPT model.
+The `data` directory contains the training data for the GPT model. The `src` directory contains the source code for the GPT model implementation. The `main.py` file contains the GPT model implementation.
 
 ## Resources
 - [GPT-2 Paper](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)
