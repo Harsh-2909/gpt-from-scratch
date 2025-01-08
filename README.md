@@ -70,6 +70,7 @@ gpt-from-scratch/
 │   ├── data.txt
 │
 ├── src/
+|   ├── gpt.ipynb
 │   ├── main.py
 │
 ├── .gitignore
@@ -79,7 +80,7 @@ gpt-from-scratch/
 ├── requirements.txt
 ```
 
-The `data` directory contains the training data for the GPT model. The `src` directory contains the source code for the GPT model implementation. The `main.py` file contains the GPT model implementation.
+The `data` directory contains the training data for the GPT model. The `src` directory contains the source code for the GPT model implementation. The `main.py` file contains the GPT model implementation while `gpt.ipynb` contains the notes and approach to implement the GPT model. It also has notes on why the model is implemented in a certain way.
 
 ## Resources
 - [GPT-2 Paper](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)
